@@ -24,7 +24,7 @@ dependencies = [
     "requests>=2, <3",
     "UnityPy>=1.10.14, <2",
     "pillow>=10",
-    "click>=8.1, <9",
+    "fire>=0.6, <1",
 ]
 dynamic = ["version", "description"]
 

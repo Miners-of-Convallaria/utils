@@ -140,7 +140,7 @@ class AssetAPIHandler:
     def get_asset_md5(self) -> AssetMd5:
         # /assets/name -- name - {md5, size} mapping
         asset_md5_unity3d = self.get_unity_asset("asset_md5", self.pc_md5)
-        env = UnityPy.load(asset_md5_unity3d)
+        env = UnityPy.load(asset_md5_unity3d)  # type: ignore
         asset_md5_ta = next(obj for obj in env.objects if obj.type.name == "TextAsset").read()  # type: ignore
         asset_md5 = json.loads(bytes(asset_md5_ta.m_Script))  # type: ignore
         return asset_md5
