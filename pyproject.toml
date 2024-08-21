@@ -20,7 +20,12 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Typing :: Typed",
 ]
-dependencies = ["requests=>2, <3", "UnityPy=>1.10.14, <2", "pillow=>10"]
+dependencies = [
+    "requests>=2, <3",
+    "UnityPy>=1.10.14, <2",
+    "pillow>=10",
+    "click>=8.1, <9",
+]
 dynamic = ["version", "description"]
 
 [project.urls]
