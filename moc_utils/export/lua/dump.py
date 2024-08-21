@@ -1,16 +1,21 @@
+import gc
 import os
 from itertools import cycle
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 from typing import Callable
 from typing import Literal
 from typing import Optional
 
 import UnityPy
+import UnityPy.classes
 
 from .handler import LuaHandler
 
 if TYPE_CHECKING:
     from UnityPy.classes import TextAsset
+
+    from moc_utils.asset_api import AssetAPIHandler
 
 LUA_PATH = os.path.join(os.path.dirname(__file__), "scripts")
 
@@ -48,33 +53,21 @@ def lua_require_unitypy(lua_map: dict[str, bytes]) -> Callable[[str], bytes]:
 #         else:
 #             raise ValueError(f"Unimplemented mode: {mode}")
 
+
 #         return filename
 
 
 def dump_database(
-    game_dir: str,
-    dst_dir: str,
+    dst: str,
+    slua_fp: str,
+    asset_dir: str,
+    lua_map: dict[str, bytes],
     loc: str = "none",
     operating_area: Literal["none", "cn", "tw", "jp", "kr", "us"] = "none",
-    slua_fp: Optional[str] = None,
 ) -> None:
-    if slua_fp is None:
-        slua_fp = os.path.join(game_dir, "SoC_Data", "Plugins", "x86_64", "slua.dll")
-    assets_fp = os.path.join(game_dir, "assets")
-
-    lua_map: dict[str, bytes] = {}
-    unity_lua_dir = os.path.join(assets_fp, "lua")
-    for file in os.listdir(unity_lua_dir):
-        env = UnityPy.load(os.path.join(unity_lua_dir, file))  # type: ignore
-        for obj in env.objects:
-            if obj.type.name == "TextAsset":
-                ta: TextAsset = obj.read()  # type: ignore
-                key = f"{file[4:-8]}/{ta.m_Name}"
-                lua_map[key] = bytes(decrypt_textasset_data(ta.m_Script))  # type: ignore
-
-    os.makedirs(dst_dir, exist_ok=True)
-    dst_dir_lua = dst_dir.replace("\\", "\\\\")
-    asset_dir_lua = assets_fp.replace("\\", "\\\\")
+    os.makedirs(dst, exist_ok=True)
+    dst_dir_lua = dst.replace("\\", "\\\\")
+    asset_dir_lua = asset_dir.replace("\\", "\\\\")
     dump_code_init = f"""
     Localization = "{loc}"
     OperatingArea = "{operating_area}"
@@ -89,6 +82,85 @@ def dump_database(
     if handler.pcall(0, 1, 0):
         err_msg = handler.tolstring(-1)
         print("Error executing Lua script:", err_msg)
+    del handler
+
+
+def dump_database_from_game(
+    game_dir: str,
+    dst_dir: str,
+    loc: str = "none",
+    operating_area: Literal["none", "cn", "tw", "jp", "kr", "us"] = "none",
+) -> None:
+    slua_fp = os.path.join(game_dir, "SoC_Data", "Plugins", "x86_64", "slua.dll")
+    assets_fp = os.path.join(game_dir, "assets")
+
+    lua_map: dict[str, bytes] = {}
+    unity_lua_dir = os.path.join(assets_fp, "lua")
+    for file in os.listdir(unity_lua_dir):
+        env = UnityPy.load(os.path.join(unity_lua_dir, file))  # type: ignore
+        for obj in env.objects:
+            if obj.type.name == "TextAsset":
+                ta: TextAsset = obj.read()  # type: ignore
+                key = f"{file[4:-8]}/{ta.m_Name}"
+                lua_map[key] = bytes(decrypt_textasset_data(ta.m_Script))  # type: ignore
+
+    dump_database(dst_dir, slua_fp, assets_fp, lua_map, loc, operating_area)
+
+
+def dump_database_from_server(
+    handler: "AssetAPIHandler",
+    dst_dir: str,
+    loc: str = "none",
+    operating_area: Literal["none", "cn", "tw", "jp", "kr", "us"] = "none",
+) -> None:
+    temp_dir = TemporaryDirectory()
+    try:
+        # get slua
+        gamefile_infos = handler.get_gamefileinfo_win()
+        for file_info in gamefile_infos["FileInfos"]:
+            if file_info["FileName"].endswith("slua.dll"):
+                slua_fp = os.path.join(temp_dir.name, "slua.dll")
+                with open(slua_fp, "wb") as f:
+                    f.write(handler.get_gamefile_pc(file_info))
+                break
+        else:
+            raise ValueError("slua.dll not found in game files")
+        # extract db_lua.bytes
+        asset_md5 = handler.get_asset_md5()
+        db_template_raw = handler.get_unity_asset("db_template", asset_md5["db_template"]["md5"])
+        env = UnityPy.load(db_template_raw)  # type: ignore
+        for obj in env.objects:
+            if obj.type.name == "TextAsset":
+                ta: TextAsset = obj.read()  # type: ignore
+                if ta.m_Name == "db_lua":
+                    db_lua_bytes = bytes(ta.m_Script)  # type: ignore
+                    with open(os.path.join(temp_dir.name, "db_lua.bytes"), "wb") as f:
+                        f.write(db_lua_bytes)
+                    break
+        else:
+            raise ValueError("db_lua.bytes not found in db_template")
+
+        # collect all lua files
+        lua_map: dict[str, bytes] = {}
+        for key, value in asset_md5.items():
+            if key.startswith("lua/"):
+                lua_dir = key.split("/", 1)[1][4:]
+                if len(lua_dir) > 0:
+                    lua_dir = f"{lua_dir}/"
+                raw = handler.get_unity_asset(key, value["md5"])
+                env = UnityPy.load(raw)  # type: ignore
+                for obj in env.objects:
+                    if obj.type.name == "TextAsset":
+                        ta: TextAsset = obj.read()  # type: ignore
+                        key = f"{lua_dir}{ta.m_Name}"
+                        lua_map[key] = bytes(decrypt_textasset_data(ta.m_Script))  # type: ignore
+
+        dump_database(dst_dir, slua_fp, temp_dir.name, lua_map, loc, operating_area)
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        gc.collect()
+        temp_dir.cleanup()
 
 
 def decrypt_textasset_data(enc: bytes) -> bytearray:

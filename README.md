@@ -75,8 +75,8 @@ news:
       channel to use.
   lang: Optional[str]
       language to use (None (default), en_US, zh_TW, ja_JP, zh_CN).
-  dst: Optional[str]
-      path to save files to for download_details
+  dst: Optional[str] - for download_details
+      path to save files to
 
 database
   A database dumper for the game.
@@ -85,7 +85,9 @@ database
   ---
   from_game:
     Dumps the database using the game instance.
-
+  from_server:
+    Dumps the database using the assets from the server.
+  
   Parameters
   ---
   dst: str
@@ -94,8 +96,12 @@ database
       localisation to use (none (default), en, ja, ko, zh-cn, zh-tw).
   area: Optional[str]
       area to use (none (default), us, tw, kr, jp, cn).
-  game_dir: Optional[str]
-      path to the game installation for from_game
+  game_dir: Optional[str] - for from_game
+      path to the game installation
+  cdn: Optional[str] - for from_server
+      cdn to use (us-prod, tw-prod, jp-prod, cn-prod)
+  channel: Optional[str] - for from_server
+      channel to use.
 ```
 
 ### examples

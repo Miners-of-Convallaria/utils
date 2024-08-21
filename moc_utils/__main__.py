@@ -10,7 +10,8 @@ import fire
 
 from moc_utils.asset_api import AssetAPIHandler
 from moc_utils.asset_api import AssetMd5Utils
-from moc_utils.export.lua.dump import dump_database
+from moc_utils.export.lua.dump import dump_database_from_game
+from moc_utils.export.lua.dump import dump_database_from_server
 from moc_utils.news import LANGUAGE as NEWS_LANGUAGE
 from moc_utils.news import TapSDKBillboard
 
@@ -192,7 +193,12 @@ class Database:
 
     def from_game(self, game_dir: str) -> None:
         """Dumps the database using the game instance."""
-        dump_database(game_dir, self.dst, self.loc, self.area)  # type: ignore
+        dump_database_from_game(game_dir, self.dst, self.loc, self.area)  # type: ignore
+
+    def from_server(self, cdn: str, channel: Optional[str] = None) -> None:
+        """Dumps the database using the assets from the server."""
+        handler = AssetAPIHandler.fetch(cdn, channel)  # type: ignore
+        dump_database_from_server(handler, self.dst, self.loc, self.area)  # type: ignore
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import _ctypes
 import ctypes
 import os
 from typing import Callable
@@ -26,6 +27,12 @@ class LuaHandler:
         register_lua_functions(self.lua)
         self.newstate()
         self.openlibs()
+
+    def __del__(self) -> None:
+        if os.name == "nt":
+            _ctypes.FreeLibrary(self.lua._handle)
+        else:
+            _ctypes.dlclose(self.lua._handle)
 
     def check_error(self, err: int) -> None:
         if err:
