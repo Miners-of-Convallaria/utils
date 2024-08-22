@@ -2,10 +2,10 @@
 
 ## TODO
 
-- [] adding db dump to the cli
-- [] rewriting db dump to dump localisation as seperate file
-- [] adding tests
-- [] use EncryptDebugString to decrypt error messages of the lua handler
+- [x] adding db dump to the cli
+- [x] rewriting db dump to dump localisation as seperate file
+- [ ] adding tests
+- [ ] use EncryptDebugString to decrypt error messages of the lua handler
 
 
 ## Installation

@@ -1,47 +1,6 @@
 require("patch")
 require("export")
 
-require("util/async")
-require("util/base64")
--- class = require("util/cs_cs_class")
-function class(name)
-    return setmetatable({}, {
-        __index = function(t, k)
-            local raw = rawget(t, k)
-            if raw then
-                return raw
-            end
-            local v = {}
-            rawset(t, k, v)
-            return v
-        end,
-    })
-end
-
-Util2 = {
-    SetGlobalTextsAndQuotes = function(_ids, _texts, _tips)
-        print("TODO: Util2.SetGlobalTextsAndQuotes")
-    end,
-    SetGlobalScenarioTexts = function(_ids, _texts)
-        print("TODO: Util2.SetGlobalScenarioTexts")
-    end
-}
-
-require("util/cs_cs_dump")
-require("util/cs_cs_index")
-require("util/cs_cs_newindex")
-require("util/cs_cs_pcall")
-require("util/cs_cs_resume")
-require("util/cs2lua__lualib")
-require("util/TimeUtil")
-
-require("battle/Logic_Speciality")
-
-
-function TimeUtil.SocketGetTimeFunc()
-    return os.time
-end
-
 -- function coroutine.create(func)
 --     print("Creating coroutine")
 --     print("func", func)
@@ -80,28 +39,54 @@ Database.db_loader.Global = {}
 Database.db_loader.load(false, true)
 Database.db_loader.post_load(true)
 
--- print(#Database.db_loader.Global)
+function convertMetaParamIndexToNormalTable(key, data)
+    local structure = {}
+    for k, v in pairs(Database["_" .. key].param_index) do
+        structure[v] = k
+    end
+    local new_data = {}
+    for i, v in pairs(data) do
+        local new_v = {}
+        for dk, dv in pairs(v) do
+            -- if key is a number, then try to get the key from the structure
+            local dkey = type(dk) == "number" and dk <= #structure and structure[dk] or dk
+            -- if value is a table, then only keep the ids
+            local dvalue = dv
+            if type(dvalue) == "table" then
+                for vk, vv in pairs(dvalue) do
+                    if type(vv) == "table" then
+                        dvalue[vk] = vv.id or vv
+                    end
+                end
+            end 
+            new_v[dkey] = dvalue
+        end
+        new_data[new_v.id or i] = new_v
+    end
+    return new_data
+end
+
+
+local neatjson = require("neatjson")
+local json_options = {{
+    wrap = true,
+    sort = function(k) return tonumber(k) or k end,
+}}
+
 for k, v in pairs(Database.db_loader.Global) do
     print(k, v)
     if k == "LuaCodes" or k == "LuaFuncs" or v == nil then
     else
-        export_table("db", k, v)
-        -- if pcall(export_table, "db", k, v) then
-        --     print("Exported " .. k)
-        -- else
-        --     print("Failed to export " .. k)
-        -- end
+        print("Dumping " .. k)
+        local string = ""
+        if Database["_" .. k] then
+            string = neatjson(convertMetaParamIndexToNormalTable(k, v),  json_options)
+        else
+            string=neatjson(v, json_options)
+        end
+        local fp = EXPORT_DIR .. "/" .. k .. ".json"
+        local file = io.open(fp, "w")
+        file:write(string)
+        file:close()
     end
 end
-
--- for k, v in pairs(Database.db_loader.Global.trans_tables) do
---     print(k, v)
---     if k == "LuaCodes" or k == "LuaFuncs" or v == nil then
---     else
---         export_table("loc_" .. Localization, k, v)
---         --     print("Exported " .. k)
---         -- else
---         --     print("Failed to export " .. k)
---         -- end
---     end
--- end

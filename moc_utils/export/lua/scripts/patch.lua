@@ -129,3 +129,45 @@ Logger = {
 --     end
 --     return _require(path)
 -- end
+
+
+require("util/async")
+require("util/base64")
+-- class = require("util/cs_cs_class")
+function class(name)
+    return setmetatable({}, {
+        __index = function(t, k)
+            local raw = rawget(t, k)
+            if raw then
+                return raw
+            end
+            local v = {}
+            rawset(t, k, v)
+            return v
+        end,
+    })
+end
+
+Util2 = {
+    SetGlobalTextsAndQuotes = function(_ids, _texts, _tips)
+        print("TODO: Util2.SetGlobalTextsAndQuotes")
+    end,
+    SetGlobalScenarioTexts = function(_ids, _texts)
+        print("TODO: Util2.SetGlobalScenarioTexts")
+    end
+}
+
+require("util/cs_cs_dump")
+require("util/cs_cs_index")
+require("util/cs_cs_newindex")
+require("util/cs_cs_pcall")
+require("util/cs_cs_resume")
+require("util/cs2lua__lualib")
+require("util/TimeUtil")
+
+require("battle/Logic_Speciality")
+
+
+function TimeUtil.SocketGetTimeFunc()
+    return os.time
+end
