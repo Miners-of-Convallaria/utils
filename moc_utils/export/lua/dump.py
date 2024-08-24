@@ -161,11 +161,14 @@ def dump_database_from_game(
     lua_map: dict[str, bytes] = {}
     unity_lua_dir = os.path.join(assets_fp, "lua")
     for file in os.listdir(unity_lua_dir):
+        lua_dir = file[4:-8]
+        if len(lua_dir) > 0:
+            lua_dir = f"{lua_dir}/"
         env = UnityPy.load(os.path.join(unity_lua_dir, file))  # type: ignore
         for obj in env.objects:
             if obj.type.name == "TextAsset":
                 ta: TextAsset = obj.read()  # type: ignore
-                key = f"{file[4:-8]}/{ta.m_Name}"
+                key = f"{lua_dir}{ta.m_Name}"
                 lua_map[key] = bytes(decrypt_textasset_data(ta.m_Script))  # type: ignore
 
     dump_database_n_localization(dst_dir, slua_fp, assets_fp, lua_map, loc, operating_area)
