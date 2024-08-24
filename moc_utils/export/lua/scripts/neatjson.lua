@@ -214,7 +214,7 @@ local function neatJSON(value, opts)
 			end
 			floatsForced = not not floatsForced -- convert nil to false
 			if not byFloatForce[floatsForced] then
-				byFloatForce[floatsForced] = rawBuild(o, indent, floatsForced, level+1)
+				byFloatForce[floatsForced] = rawBuild(o, indent, floatsForced, level)
 			end
 			return byFloatForce[floatsForced]
 		end
