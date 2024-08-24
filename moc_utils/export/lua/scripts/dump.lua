@@ -1,5 +1,4 @@
 require("patch")
-require("export")
 
 -- function coroutine.create(func)
 --     print("Creating coroutine")
