@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2, <3",
-    "UnityPy>=1.10.14, <2",
+    "UnityPy>=1.20.3, <2",
     "pillow>=10",
     "fire>=0.6, <1",
 ]

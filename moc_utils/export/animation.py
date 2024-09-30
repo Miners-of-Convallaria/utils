@@ -3,7 +3,7 @@ from collections import defaultdict
 from io import BytesIO
 
 from PIL import Image
-from UnityPy import Environment
+import UnityPy
 from UnityPy.classes import AnimationClip
 from UnityPy.classes import Animator
 from UnityPy.classes import AnimatorController
@@ -43,8 +43,9 @@ def normalize_frames(frames: list[Image.Image], offsets: list[tuple[float, float
 
 def get_palette(material_pptr: PPtr) -> bytes:
     material: Material = material_pptr.read()
-    mat_texs: dict[str, PPtr] = material.m_SavedProperties.m_TexEnvs  # type: ignore
-    palette_tex = mat_texs["_PaletteTex"].m_Texture.read()
+    mat_texs: dict[str, PPtr] = material.m_SavedProperties.m_TexEnvs
+    palette_tex_env = next(tex for name, tex in mat_texs if name == "_PaletteTex")
+    palette_tex = palette_tex_env.m_Texture.read()
     palette = palette_tex.image.tobytes()
     return palette
 
@@ -74,7 +75,7 @@ def animation_to_gif(anim: AnimationClip, material: PPtr, speedup: int = 1) -> b
             break
         frames.append(raw_image)
         frame_sizes.append(raw_image.size)
-        frame_offsets.append((sprite.m_Offset.X, sprite.m_Offset.Y))
+        frame_offsets.append((sprite.m_Offset.x, sprite.m_Offset.x))
 
     if not frames:
         raise ValueError("No frames to export!")
@@ -131,20 +132,11 @@ def export_gameobject_animations(go: GameObject) -> dict[str, bytes]:
 
     sprite_materials: list[PPtr] = []
     for obj in types["SpriteRenderer"]:
-        renderer: dict = obj.read_typetree()  # type: ignore
+        renderer = obj.read()  # type: ignore
         # sprite_path_id = renderer["m_Sprite"]["m_PathID"]
-        material_path_id: int = renderer["m_Materials"][0]["m_PathID"]  # type: ignore
-        material_file_id: int = renderer["m_Materials"][0]["m_FileID"]  # type: ignore
+        material_pptr: int = renderer.m_Materials[0]
 
-        if material_file_id == 0:
-            material_pptr: PPtr = obj.assets_file.objects[material_path_id]  # type: ignore
-            # else:
-            #     external = obj.assets_file.externals[material_file_id - 1]
-            #     external = env.get_cab(external.name)
-            #     if not external:
-            #         continue
-            #     material = external.objects[material_path_id]
-
+        if material_pptr.m_FileID == 0:
             sprite_materials.append(material_pptr)  # type: ignore
 
     if len(sprite_materials) > 1:
@@ -161,17 +153,20 @@ def export_gameobject_animations(go: GameObject) -> dict[str, bytes]:
     return ret
 
 
-def export_animations(env: Environment, dst: str) -> None:
-    root_nodes: set[GameObject] = set()
+def export_animations(env: UnityPy.Environment, dst: str) -> None:
+    if UnityPy.__version__ < "1.20.0":
+        raise ImportError("UnityPy version must be at least 1.20.0")
+
+    root_nodes: dict[int, GameObject] = {}
     for obj in env.objects:
         if obj.type.name != "GameObject":
             continue
         go: GameObject = obj.read()  # type: ignore
         tf = go.m_Transform.read()
         if tf.m_Father.path_id == 0:
-            root_nodes.add(go)
+            root_nodes[obj.path_id] = go
 
-    for root_node in root_nodes:
+    for root_node in root_nodes.values():
         try:
             gifs = export_gameobject_animations(root_node)
             assert gifs
