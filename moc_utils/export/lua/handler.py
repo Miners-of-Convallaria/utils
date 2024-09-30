@@ -45,7 +45,8 @@ class LuaHandler:
         assert self.state is not None, "Failed to create Lua state"
 
     def openlibs(self) -> None:
-        assert self.lua.luaL_openlibs(self.state) != 0, "Failed to open Lua libs"
+        self.lua.luaL_openlibs(self.state)
+        self.lua.luaS_openextlibs(self.state)
 
     def loadstring(self, s: str) -> None:
         err = self.lua.luaL_loadstring(self.state, s.encode("utf-8") + b"\x00")
@@ -247,3 +248,5 @@ def register_lua_functions(lua: ctypes.CDLL) -> None:
 
     lua.luaL_error.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
     lua.luaL_error.restype = ctypes.c_int
+
+    lua.luaS_openextlibs.argtypes = [ctypes.c_void_p]
