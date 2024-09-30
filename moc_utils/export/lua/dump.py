@@ -23,6 +23,9 @@ LUA_PATH = os.path.join(os.path.dirname(__file__), "scripts")
 def lua_require_unitypy(lua_map: dict[str, bytes]) -> Callable[[str], bytes]:
     def lua_require(filename: str) -> bytes:
         print(f"Py: Loading {filename}")
+        if filename == "DBTemplate/text":
+            return b"return {}"
+
         if filename in lua_map:
             return lua_map[filename]
 
@@ -155,6 +158,7 @@ def dump_database_from_game(
     operating_area: Literal["none", "cn", "tw", "jp", "kr", "us"] = "none",
 ) -> None:
     slua_fp = os.path.join(game_dir, "SoC_Data", "Plugins", "x86_64", "slua.dll")
+    # slua_fp = r"D:\Projects\SoC\lu2\build_win\Release\xdlua.dll"
     assets_fp = os.path.join(game_dir, "assets")
 
     print("Loading lua files from assets...")
@@ -169,7 +173,10 @@ def dump_database_from_game(
             if obj.type.name == "TextAsset":
                 ta: TextAsset = obj.read()  # type: ignore
                 key = f"{lua_dir}{ta.m_Name}"
-                lua_map[key] = bytes(decrypt_textasset_data(ta.m_Script))  # type: ignore
+                script = ta.m_Script
+                if isinstance(script, str):
+                    script = script.encode("utf-8", "surrogateescape")
+                lua_map[key] = bytes(decrypt_textasset_data(script))  # type: ignore
 
     dump_database_n_localization(dst_dir, slua_fp, assets_fp, lua_map, loc, operating_area)
 
@@ -222,7 +229,10 @@ def dump_database_from_server(
                     if obj.type.name == "TextAsset":
                         ta: TextAsset = obj.read()  # type: ignore
                         key = f"{lua_dir}{ta.m_Name}"
-                        lua_map[key] = bytes(decrypt_textasset_data(ta.m_Script))  # type: ignore
+                        script = ta.m_Script
+                        if isinstance(script, str):
+                            script = script.encode("utf-8", "surrogateescape")
+                        lua_map[key] = bytes(decrypt_textasset_data(script))  # type: ignore
 
         dump_database_n_localization(dst_dir, slua_fp, temp_dir.name, lua_map, loc, operating_area)
     except Exception as e:
