@@ -108,7 +108,7 @@ class AssetAPIHandler:
     def get_gamefileinfo_win(self) -> GameFileInfo:
         # fetches the list of game files for windows
         # e.g. SoC.exe, UnityPlayer.dll, SoC_Data/app.info, ...
-        name = f"GameFileInfo_{self.win_md5}.json" if self.use_hash or not self.win_md5 else "GameFileInfo.json"
+        name = f"GameFileInfo_{self.win_md5}.json" if self.use_hash and self.win_md5 else "GameFileInfo.json"
 
         return json.loads(self.get_file("pc", name))
 
@@ -142,7 +142,7 @@ class AssetAPIHandler:
         asset_md5_unity3d = self.get_unity_asset("asset_md5", self.pc_md5)
         env = UnityPy.load(asset_md5_unity3d)  # type: ignore
         asset_md5_ta = next(obj for obj in env.objects if obj.type.name == "TextAsset").read()  # type: ignore
-        asset_md5 = json.loads(bytes(asset_md5_ta.m_Script))  # type: ignore
+        asset_md5 = json.loads(asset_md5_ta.m_Script)  # type: ignore
         return asset_md5
 
     def get_unity_asset(self, asset_name: str, asset_md5: Optional[str] = None) -> bytes:
