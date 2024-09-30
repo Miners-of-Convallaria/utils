@@ -20,7 +20,7 @@ require("patch")
 --     return val
 -- end
 
-for i = 1, 100 do
+for i = 1, 5 do
     if not require("db/db_template" .. tostring(i)) then
         break
     end
