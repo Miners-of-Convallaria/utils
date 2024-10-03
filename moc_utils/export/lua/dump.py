@@ -208,7 +208,10 @@ def dump_database_from_server(
             if obj.type.name == "TextAsset":
                 ta: TextAsset = obj.read()  # type: ignore
                 if ta.m_Name == "db_lua":
-                    db_lua_bytes = bytes(ta.m_Script)  # type: ignore
+                    script = ta.m_Script
+                    if isinstance(script, str):
+                        script = script.encode("utf-8", "surrogateescape")
+                    db_lua_bytes = bytes(script)  # type: ignore
                     with open(os.path.join(temp_dir.name, "db_lua.bytes"), "wb") as f:
                         f.write(db_lua_bytes)
                     break
@@ -269,4 +272,7 @@ def extract_scripts(game_fp: str, dst_fp: str, game_lua_fp: Optional[str] = None
 
             os.makedirs(exp_dir, exist_ok=True)
             with open(os.path.join(exp_dir, f"{ta.m_Name}.lua"), "wb") as f:
+                script = ta.m_Script
+                if isinstance(script, str):
+                    script = script.encode("utf-8", "surrogateescape")
                 f.write(decrypt_textasset_data(ta.m_Script))  # type: ignore
