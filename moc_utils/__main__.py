@@ -14,6 +14,7 @@ from moc_utils.export.lua.dump import dump_database_from_game
 from moc_utils.export.lua.dump import dump_database_from_server
 from moc_utils.news import LANGUAGE as NEWS_LANGUAGE
 from moc_utils.news import TapSDKBillboard
+from moc_utils.export.lua.decompile import decompile_all
 
 
 class Downloader(object):
@@ -201,5 +202,28 @@ class Database:
         dump_database_from_server(handler, self.dst, self.loc, self.area)  # type: ignore
 
 
+class LuaDecompiler:
+    """
+    Decompiler for the protected lua scripts of the game.
+
+    Parameters:
+    ---
+    src: str
+        Path to the folder containing the lua files.
+    dst: str
+        Path to a folder where the decompiled lua files should be stored.
+    """
+    dst: str
+    src: str
+
+    def __init__(self, src: str, dst: str) -> None:
+        self.src = src
+        self.dst = dst
+
+    def decompile(self):
+        """Decompiles the lua scripts in src to dst"""
+        decompile_all(self.src, self.dst)
+
+
 if __name__ == "__main__":
-    fire.Fire({"news": News, "download": Downloader, "database": Database})  # type: ignore
+    fire.Fire({"news": News, "download": Downloader, "database": Database, "lua": Lua})  # type: ignore

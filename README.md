@@ -102,6 +102,22 @@ database
       cdn to use (us-prod, tw-prod, jp-prod, cn-prod)
   channel: Optional[str] - for from_server
       channel to use.
+  
+lua
+  Decompiles the lua scripts of the game.
+  (java has to be available in the system path)
+
+  Subcommands
+  ---
+  decompile
+    Decompiles the lua scripts in src to dst
+
+  Parameters:
+  ---
+  src: str
+      Path to the folder containing the lua files.
+  dst: str
+      Path to a folder where the decompiled lua files should be stored.
 ```
 
 ### examples
